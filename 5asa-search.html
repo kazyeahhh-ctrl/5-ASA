@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同種同効薬検索 - 5-ASA製剤(潰瘍性大腸炎)</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --accent: #2f6b4f;
+    --accent-soft: #e7f0ea;
+    --text: #26302b;
+    --sub: #6b7570;
+    --border: #e2e0da;
+    --warn-bg: #fff4ea;
+    --warn-border: #f0ddc4;
+    --warn-text: #8a5a1f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  header { margin-bottom: 18px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .desc { font-size: 13px; color: var(--sub); line-height: 1.6; margin: 0; }
+
+  .search-box { position: relative; margin: 20px 0 8px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 15px 16px;
+    font-size: 17px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  .suggestions {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; margin-top: 4px; overflow: hidden;
+    z-index: 10; box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    max-height: 320px; overflow-y: auto;
+  }
+  .suggestions button {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; text-align: left;
+    padding: 12px 16px; background: none; border: none;
+    border-bottom: 1px solid var(--border); font-size: 15.5px;
+    color: var(--text); cursor: pointer;
+  }
+  .suggestions button:last-child { border-bottom: none; }
+  .suggestions button:hover { background: var(--accent-soft); }
+  .suggestions .brand-tag { color: #9aa39c; font-size: 12px; }
+  .hint { font-size: 12px; color: var(--sub); margin: 4px 2px 0; }
+
+  /* 錠剤アイコン(色・形の簡易表現。実物写真ではありません) */
+  .pill-icon {
+    flex-shrink: 0;
+    display: inline-block;
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+  .pill-round { width: 22px; height: 22px; border-radius: 50%; }
+  .pill-oval { width: 26px; height: 17px; border-radius: 50%; }
+  .pill-granule {
+    width: 22px; height: 22px; border-radius: 6px;
+    background-image: radial-gradient(circle, rgba(0,0,0,0.25) 1px, transparent 1.5px);
+    background-size: 5px 5px;
+  }
+
+  .current-card {
+    margin-top: 20px; background: var(--accent); color: #fff;
+    border-radius: 14px; padding: 18px 20px;
+  }
+  .current-card .label { font-size: 11px; opacity: .85; margin-bottom: 4px; }
+  .current-card .name-row { display: flex; align-items: center; gap: 10px; }
+  .current-card .name { font-size: 21px; font-weight: 700; }
+  .current-card .variant-name { font-size: 14px; opacity: .95; margin-top: 2px; }
+  .current-card .appearance { font-size: 12px; opacity: .85; margin-top: 6px; }
+  .current-card .efficacy { font-size: 12px; opacity: .95; margin-top: 6px; line-height: 1.6; }
+  .current-card .efficacy .eff-label { opacity: .8; }
+  .current-card .stat-grid { margin-top: 14px; }
+  .current-card .stat { background: rgba(255,255,255,0.14); }
+  .current-card .stat .stat-label { color: rgba(255,255,255,0.75); }
+  .current-card .stat .stat-value { color: #fff; }
+  .current-card .stat .stat-value small { color: rgba(255,255,255,0.75); }
+  .current-card .day-price { background: rgba(255,255,255,0.18); }
+  .current-card .day-price .dp-label,
+  .current-card .day-price .dp-value { color: #fff; }
+  .current-card .note { color: rgba(255,255,255,0.85); }
+  .current-card .pill-icon { border-color: rgba(255,255,255,0.6); }
+  .current-card .generic-ref { border-top-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); }
+  .current-card .generic-ref .gr-value { color: #fff; }
+
+  .section-title { margin: 24px 0 10px; font-size: 14px; font-weight: 700; color: var(--sub); }
+  .section-sub { font-size: 12px; color: var(--sub); margin: -6px 0 12px; line-height: 1.6; }
+  .brand-group-title {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin: 18px 0 8px; padding-left: 2px;
+  }
+  .brand-group-title:first-child { margin-top: 0; }
+
+  .drug-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px 20px; margin-bottom: 14px;
+  }
+  .drug-card.sibling { border-color: var(--accent); border-style: dashed; }
+  .drug-card .name-row { display: flex; align-items: center; gap: 10px; }
+  .drug-card .name { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .drug-card .variant-name { font-size: 13px; color: var(--sub); margin-top: 2px; }
+  .fav-btn {
+    margin-left: auto; background: none; border: none; cursor: pointer;
+    font-size: 22px; line-height: 1; padding: 2px 4px; color: #cfc9bd;
+    flex-shrink: 0;
+  }
+  .fav-btn.active { color: #e0a020; }
+  .fav-btn:hover { color: #e0a020; opacity: .8; }
+  .drug-card .appearance { font-size: 11.5px; color: var(--sub); margin-top: 4px; }
+  .drug-card .efficacy {
+    font-size: 12.5px; color: var(--text); margin-top: 10px;
+    background: var(--bg); border-radius: 8px; padding: 8px 10px; line-height: 1.6;
+  }
+  .drug-card .efficacy .eff-label { color: var(--sub); font-size: 11px; display: block; margin-bottom: 2px; }
+
+  .generic-badge {
+    display: inline-block; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px;
+    vertical-align: middle; white-space: nowrap;
+  }
+  .generic-yes { background: var(--accent-soft); color: var(--accent); }
+  .generic-no { background: #f5e9e9; color: #a5493f; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-top: 14px;
+  }
+  .stat { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+  .stat .stat-label { font-size: 11px; color: var(--sub); margin-bottom: 2px; }
+  .stat .stat-value { font-size: 17px; font-weight: 700; color: var(--text); }
+  .stat .stat-value small { font-size: 12px; font-weight: 400; color: var(--sub); }
+
+  .day-price {
+    margin-top: 12px; background: var(--accent-soft);
+    border-radius: 10px; padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .day-price .dp-label { font-size: 12.5px; color: var(--accent); font-weight: 700; }
+  .day-price .dp-value { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .day-price .dp-value small { font-size: 12px; font-weight: 400; }
+
+  .generic-ref {
+    margin-top: 10px; font-size: 12.5px; color: var(--sub);
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px dashed var(--border); padding-top: 10px;
+  }
+  .generic-ref .gr-value { font-weight: 700; color: var(--text); }
+
+  .note { font-size: 11.5px; color: var(--sub); margin-top: 10px; line-height: 1.6; }
+  .switch-btn {
+    margin-top: 12px; width: 100%; padding: 10px; font-size: 13.5px;
+    background: var(--accent-soft); color: var(--accent); border: none;
+    border-radius: 8px; font-weight: 700; cursor: pointer;
+  }
+  .switch-btn:hover { background: #dcebe2; }
+
+  .empty-state { margin-top: 30px; text-align: center; color: var(--sub); font-size: 13px; line-height: 1.8; }
+  .not-found {
+    margin-top: 20px; background: var(--warn-bg); border: 1px solid var(--warn-border);
+    color: var(--warn-text); border-radius: 12px; padding: 14px 16px;
+    font-size: 13.5px; line-height: 1.7;
+  }
+  footer {
+    max-width: 560px; margin: 36px auto 0; font-size: 11px; color: var(--sub);
+    line-height: 1.7; border-top: 1px solid var(--border); padding-top: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>同種同効薬検索</h1>
+    <p class="desc">飲んでいる薬の名前を入力すると、同じ薬の別規格・剤形と、他の選択肢(日本承認・先発品)を比較できます。まずは潰瘍性大腸炎の5-ASA製剤に対応しています。</p>
+  </header>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="例: ペンタサ錠500mg、アサコール..." autocomplete="off">
+    <div class="suggestions" id="suggestions" style="display:none;"></div>
+  </div>
+  <p class="hint">先発品名・一般名(成分名)のどちらでも検索できます</p>
+
+  <div id="result"></div>
+</div>
+
+<footer>
+  ※ 色・形のアイコンは添付文書の性状情報をもとにした簡易的な色見本であり、実物の写真ではありません。正確な外観は各製薬会社の製品情報でご確認ください。薬価は2026年8月時点の公表情報に基づく目安で、改定により変わることがあります。1日薬価は代表的な服用量(添付文書の標準用量)をもとに計算した目安であり、実際の処方量は症状により異なります。ジェネリック参考価格は代表的な後発品1製品の価格帯の目安で、販売会社により異なります。薬の変更・追加は必ず主治医・薬剤師にご相談ください。
+</footer>
+
+<script>
+const DRUGS = [
+  {
+    id: "salazopyrin",
+    brand: "サラゾピリン",
+    generic: "サラゾスルファピリジン",
+    aliases: ["さらぞぴりん", "salazopyrin", "サラゾスルファピリジン", "sasp", "アザルフィジン"],
+    efficacy: "潰瘍性大腸炎、限局性腸炎、非特異性大腸炎",
+    variants: [
+      {
+        id: "salazopyrin-500", label: "錠500mg",
+        price: 7.6, unit: "1錠", tabsPerDay: 4, timesPerDay: 4,
+        doseNote: "1回1錠を1日4回(通常量の目安)",
+        genericRef: 24.2,
+        shape: "round", color: "#d8b23a", appearance: "黄色〜黄褐色の円形錠"
+      }
+    ]
+  },
+  {
+    id: "pentasa",
+    brand: "ペンタサ",
+    generic: "メサラジン",
+    aliases: ["ぺんたさ", "pentasa", "メサラジン", "mesalazine"],
+    efficacy: "潰瘍性大腸炎(重症を除く)、クローン病",
+    variants: [
+      {
+        id: "pentasa-500", label: "錠500mg",
+        price: 45.8, unit: "1錠",
+        genericRef: 23.9,
+        shape: "round", color: "#cfc9bd", appearance: "灰白色〜淡灰黄色の円形錠(割線あり)",
+        regimens: [
+          { scenario: "潰瘍性大腸炎(通常)", timesPerDay: 3, unitsPerDay: 3, amount: "1,500mg/日" },
+          { scenario: "潰瘍性大腸炎(寛解期)", timesPerDay: 1, unitsPerDay: 3, amount: "1,500mgを1回で" },
+          { scenario: "潰瘍性大腸炎(活動期・増量時)", timesPerDay: 2, unitsPerDay: 8, amount: "4,000mg/日" },
+          { scenario: "クローン病", timesPerDay: 3, unitsPerDay: 6, amount: "1,500〜3,000mg/日" }
+        ]
+      },
+      {
+        id: "pentasa-250", label: "錠250mg",
+        price: 26.1, unit: "1錠",
+        genericRef: 14.7,
+        shape: "round", color: "#f2ecd8", appearance: "白色〜淡黄色の円形錠(割線あり)",
+        regimens: [
+          { scenario: "潰瘍性大腸炎(通常)", timesPerDay: 3, unitsPerDay: 6, amount: "1,500mg/日" },
+          { scenario: "潰瘍性大腸炎(寛解期)", timesPerDay: 1, unitsPerDay: 6, amount: "1,500mgを1回で" },
+          { scenario: "潰瘍性大腸炎(活動期・増量時)", timesPerDay: 2, unitsPerDay: 16, amount: "4,000mg/日" },
+          { scenario: "クローン病", timesPerDay: 3, unitsPerDay: 12, amount: "1,500〜3,000mg/日" }
+        ]
+      },
+      {
+        id: "pentasa-granule", label: "顆粒94%",
+        price: 100.1, unit: "1g",
+        genericRef: null,
+        shape: "granule", color: "#e8e2d0", appearance: "白色〜淡黄色の顆粒",
+        regimens: [
+          { scenario: "潰瘍性大腸炎(通常)", timesPerDay: 3, unitsPerDay: 1.6, amount: "1,500mg相当/日" },
+          { scenario: "潰瘍性大腸炎(寛解期)", timesPerDay: 1, unitsPerDay: 1.6, amount: "1,500mg相当を1回で" },
+          { scenario: "潰瘍性大腸炎(活動期・増量時)", timesPerDay: 2, unitsPerDay: 4.3, amount: "4,000mg相当/日" },
+          { scenario: "クローン病", timesPerDay: 3, unitsPerDay: 3.2, amount: "1,500〜3,000mg相当/日" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "asacol",
+    brand: "アサコール",
+    generic: "メサラジン",
+    aliases: ["あさこーる", "asacol", "メサラジン", "mesalazine"],
+    efficacy: "潰瘍性大腸炎(重症を除く) ※クローン病の適応なし",
+    variants: [
+      {
+        id: "asacol-400", label: "錠400mg",
+        price: 26.7, unit: "1錠",
+        genericRef: 15.7,
+        shape: "round", color: "#a05a45", appearance: "帯赤褐色〜褐色のフィルムコーティング錠",
+        regimens: [
+          { scenario: "潰瘍性大腸炎(通常)", timesPerDay: 3, unitsPerDay: 6, amount: "2,400mg/日" },
+          { scenario: "潰瘍性大腸炎(寛解期)", timesPerDay: 1, unitsPerDay: 6, amount: "2,400mgを1回で" },
+          { scenario: "潰瘍性大腸炎(活動期)", timesPerDay: 3, unitsPerDay: 9, amount: "3,600mg/日" }
+        ]
+      }
+    ]
+  },
+  {
+    id: "lialda",
+    brand: "リアルダ",
+    generic: "メサラジン(MMX)",
+    aliases: ["りあるだ", "lialda", "mezavant", "メサラジン", "mmx", "mesalazine"],
+    efficacy: "潰瘍性大腸炎(重症を除く) ※クローン病の適応なし",
+    variants: [
+      {
+        id: "lialda-1200", label: "錠1200mg",
+        price: 162.2, unit: "1錠",
+        genericRef: null,
+        shape: "oval", color: "#9c4a3c", appearance: "赤褐色の楕円形フィルムコーティング錠",
+        regimens: [
+          { scenario: "潰瘍性大腸炎(通常)", timesPerDay: 1, unitsPerDay: 2, amount: "2,400mg/日" },
+          { scenario: "潰瘍性大腸炎(活動期)", timesPerDay: 1, unitsPerDay: 4, amount: "4,800mgを1回で" }
+        ]
+      }
+    ]
+  }
+];
+
+// フラット化: 検索・表示用に「薬+規格」単位のリストを作る
+const ALL_VARIANTS = [];
+DRUGS.forEach(drug => {
+  drug.variants.forEach(v => {
+    ALL_VARIANTS.push({ drug, variant: v });
+  });
+});
+
+// お気に入り(気になる薬)の状態管理
+let favorites = new Set();
+
+async function loadFavorites() {
+  try {
+    const res = await window.storage.get('favorites', false);
+    if (res && res.value) {
+      favorites = new Set(JSON.parse(res.value));
+    }
+  } catch (e) {
+    favorites = new Set();
+  }
+}
+
+async function toggleFavorite(variantId) {
+  if (favorites.has(variantId)) {
+    favorites.delete(variantId);
+  } else {
+    favorites.add(variantId);
+  }
+  try {
+    await window.storage.set('favorites', JSON.stringify([...favorites]), false);
+  } catch (e) {
+    // 保存に失敗しても表示上のトグルは維持する
+  }
+}
+
+const searchInput = document.getElementById('searchInput');
+const suggestionsBox = document.getElementById('suggestions');
+const resultBox = document.getElementById('result');
+
+function normalize(str) { return str.toLowerCase().trim(); }
+
+function matchVariants(query) {
+  const q = normalize(query);
+  if (!q) return [];
+  return ALL_VARIANTS.filter(({ drug, variant }) => {
+    const haystack = [drug.brand, drug.generic, variant.label, drug.brand + variant.label, ...drug.aliases]
+      .map(normalize).join(' | ');
+    return haystack.includes(q);
+  });
+}
+
+function pillIconHtml(variant) {
+  const cls = variant.shape === 'oval' ? 'pill-oval' : (variant.shape === 'granule' ? 'pill-granule' : 'pill-round');
+  const style = variant.shape === 'granule'
+    ? `background-color:${variant.color};`
+    : `background-color:${variant.color};`;
+  return `<span class="pill-icon ${cls}" style="${style}" title="${variant.appearance}"></span>`;
+}
+
+function renderSuggestions(query) {
+  const matches = matchVariants(query);
+  if (!query || matches.length === 0) {
+    suggestionsBox.style.display = 'none';
+    suggestionsBox.innerHTML = '';
+    return;
+  }
+  suggestionsBox.innerHTML = matches.map(({ drug, variant }) =>
+    `<button data-id="${variant.id}">
+      ${pillIconHtml(variant)}
+      <span>${drug.brand}${variant.label} <span class="brand-tag">(${drug.generic})</span></span>
+    </button>`
+  ).join('');
+  suggestionsBox.style.display = 'block';
+
+  suggestionsBox.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const match = ALL_VARIANTS.find(({ variant }) => variant.id === btn.dataset.id);
+      searchInput.value = match.drug.brand + match.variant.label;
+      suggestionsBox.style.display = 'none';
+      renderResult(match.drug, match.variant);
+    });
+  });
+}
+
+function dayPriceOf(variant) {
+  return (variant.price * variant.tabsPerDay).toFixed(1);
+}
+
+function genericRefRow(variant) {
+  if (variant.genericRef == null) {
+    return `
+      <div class="generic-ref">
+        <span>ジェネリック</span>
+        <span class="gr-value">なし</span>
+      </div>`;
+  }
+  const genericDayPrice = (variant.genericRef * variant.tabsPerDay).toFixed(1);
+  return `
+    <div class="generic-ref">
+      <span>ジェネリック参考価格</span>
+      <span class="gr-value">${variant.unit}あたり 約${variant.genericRef}円〜</span>
+    </div>
+    <div class="generic-ref" style="border-top:none; padding-top:2px;">
+      <span>ジェネリックの1日薬価目安</span>
+      <span class="gr-value">約${genericDayPrice}円/日〜</span>
+    </div>`;
+}
+
+function currentCard(drug, variant) {
+  return `
+    <div class="current-card">
+      <div class="label">今飲んでいる薬</div>
+      <div class="name-row">
+        ${pillIconHtml(variant)}
+        <div>
+          <div class="name">${drug.brand}</div>
+          <div class="variant-name">${variant.label}・${drug.generic}</div>
+        </div>
+      </div>
+      <div class="appearance">外観の目安: ${variant.appearance}</div>
+      <div class="efficacy"><span class="eff-label">効能・効果</span>${drug.efficacy}</div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">1日の服用回数</div>
+          <div class="stat-value">${variant.timesPerDay}回 <small>/ 日</small></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">薬価(${variant.unit})</div>
+          <div class="stat-value">${variant.price}円</div>
+        </div>
+      </div>
+
+      <div class="day-price">
+        <span class="dp-label">1日薬価の目安</span>
+        <span class="dp-value">${dayPriceOf(variant)}<small>円/日</small></span>
+      </div>
+
+      ${genericRefRow(variant)}
+      <p class="note">目安の飲み方: ${variant.doseNote}</p>
+    </div>
+  `;
+}
+
+function optionCard(drug, variant, { isSibling }) {
+  const genericBadge = variant.genericRef != null
+    ? `<span class="generic-badge generic-yes">ジェネリックあり</span>`
+    : `<span class="generic-badge generic-no">ジェネリックなし</span>`;
+  const isFav = favorites.has(variant.id);
+
+  return `
+    <div class="drug-card ${isSibling ? 'sibling' : ''}">
+      <div class="name-row">
+        ${pillIconHtml(variant)}
+        <div style="flex:1;">
+          <div class="name">${drug.brand} <span style="font-size:13px;color:var(--sub);font-weight:400;">${variant.label}</span></div>
+        </div>
+        ${genericBadge}
+        <button class="fav-btn ${isFav ? 'active' : ''}" data-fav-id="${variant.id}" aria-label="気になる薬に登録">${isFav ? '★' : '☆'}</button>
+      </div>
+      <div class="appearance">外観の目安: ${variant.appearance}</div>
+      <div class="efficacy"><span class="eff-label">効能・効果</span>${drug.efficacy}</div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">1日の服用回数</div>
+          <div class="stat-value">${variant.timesPerDay}回 <small>/ 日</small></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">薬価(${variant.unit})</div>
+          <div class="stat-value">${variant.price}円</div>
+        </div>
+      </div>
+
+      <div class="day-price">
+        <span class="dp-label">1日薬価の目安</span>
+        <span class="dp-value">${dayPriceOf(variant)}<small>円/日</small></span>
+      </div>
+
+      ${genericRefRow(variant)}
+      <p class="note">目安の飲み方: ${variant.doseNote}</p>
+      <button class="switch-btn" data-id="${variant.id}">これを「今飲んでいる薬」として見る</button>
+    </div>
+  `;
+}
+
+function renderResult(selectedDrug, selectedVariant) {
+  const siblings = selectedDrug.variants.filter(v => v.id !== selectedVariant.id);
+  const otherDrugs = DRUGS.filter(d => d.id !== selectedDrug.id);
+
+  let html = currentCard(selectedDrug, selectedVariant);
+
+  if (siblings.length > 0) {
+    html += `<div class="section-title">${selectedDrug.brand}の他の規格・剤形(${siblings.length}件)</div>`;
+    html += `<div class="section-sub">同じ薬でも規格や剤形によって服用回数・薬価が変わります</div>`;
+    html += siblings.map(v => optionCard(selectedDrug, v, { isSibling: true })).join('');
+  }
+
+  const totalOtherVariants = otherDrugs.reduce((sum, d) => sum + d.variants.length, 0);
+  html += `<div class="section-title">他にもこんな選択肢があります(${otherDrugs.length}剤・全${totalOtherVariants}規格)</div>`;
+  otherDrugs.forEach(d => {
+    html += `<div class="brand-group-title">${d.brand}(${d.generic})</div>`;
+    html += d.variants.map(v => optionCard(d, v, { isSibling: false })).join('');
+  });
+
+  resultBox.innerHTML = html;
+
+  resultBox.querySelectorAll('.switch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const match = ALL_VARIANTS.find(({ variant }) => variant.id === btn.dataset.id);
+      searchInput.value = match.drug.brand + match.variant.label;
+      renderResult(match.drug, match.variant);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  resultBox.querySelectorAll('.fav-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.favId;
+      await toggleFavorite(id);
+      const isFav = favorites.has(id);
+      btn.textContent = isFav ? '★' : '☆';
+      btn.classList.toggle('active', isFav);
+    });
+  });
+}
+
+function renderNotFound(query) {
+  resultBox.innerHTML = `
+    <div class="not-found">
+      「${query}」は現在の対応データベース(5-ASA製剤 4種)には見つかりませんでした。<br>
+      対応薬: サラゾピリン、ペンタサ(錠500mg/250mg・顆粒)、アサコール、リアルダ
+    </div>
+  `;
+}
+
+function renderEmpty() {
+  resultBox.innerHTML = `<div class="empty-state">薬名を入力すると、他の選択肢が表示されます</div>`;
+}
+
+searchInput.addEventListener('input', (e) => {
+  const val = e.target.value;
+  renderSuggestions(val);
+  if (!val) renderEmpty();
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const matches = matchVariants(searchInput.value);
+    suggestionsBox.style.display = 'none';
+    if (matches.length > 0) {
+      renderResult(matches[0].drug, matches[0].variant);
+    } else if (searchInput.value.trim()) {
+      renderNotFound(searchInput.value.trim());
+    }
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-box')) {
+    suggestionsBox.style.display = 'none';
+  }
+});
+
+renderEmpty();
+loadFavorites();
+</script>
+</body>
+</html>
