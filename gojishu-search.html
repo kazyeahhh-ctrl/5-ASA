@@ -181,6 +181,30 @@
   }
   .switch-btn:hover { background: #dcebe2; }
 
+  .side-effects {
+    margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px;
+  }
+  .side-effects .se-label {
+    font-size: 11px; color: var(--sub); display: block; margin-bottom: 6px;
+  }
+  .side-effects .se-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .side-effects .se-tag {
+    font-size: 11.5px; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px;
+  }
+  .side-effect-warn {
+    margin-top: 8px; background: var(--warn-bg); border: 1px solid var(--warn-border);
+    color: var(--warn-text); border-radius: 8px; padding: 9px 11px;
+    font-size: 11.5px; line-height: 1.6; display: flex; gap: 7px; align-items: flex-start;
+  }
+  .side-effect-warn .se-icon { flex-shrink: 0; }
+
+  .current-card .side-effects { border-top-color: rgba(255,255,255,0.3); }
+  .current-card .side-effects .se-label { color: rgba(255,255,255,0.85); }
+  .current-card .side-effects .se-tag {
+    color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3);
+  }
+
   .empty-state { margin-top: 30px; text-align: center; color: var(--sub); font-size: 13px; line-height: 1.8; }
   .not-found {
     margin-top: 20px; background: var(--warn-bg); border: 1px solid var(--warn-border);
@@ -210,7 +234,7 @@
 </div>
 
 <footer>
-  ※ 色・形のアイコンは添付文書の性状情報をもとにした簡易的な色見本であり、実物の写真ではありません。正確な外観は各製薬会社の製品情報でご確認ください。薬価は2026年8月時点の公表情報に基づく目安で、改定により変わることがあります。1日薬価・服用回数は代表的な用法(通常用量)をもとに計算した目安であり、実際の処方量・回数は症状により異なります。ジェネリック参考価格は代表的な後発品1製品の価格帯の目安で、販売会社により異なります。薬の変更・追加は必ず主治医・薬剤師にご相談ください。
+  ※ 色・形のアイコンは添付文書の性状情報をもとにした簡易的な色見本であり、実物の写真ではありません。正確な外観は各製薬会社の製品情報でご確認ください。薬価は2026年8月時点の公表情報に基づく目安で、改定により変わることがあります。1日薬価・服用回数は代表的な用法(通常用量)をもとに計算した目安であり、実際の処方量・回数は症状により異なります。ジェネリック参考価格は代表的な後発品1製品の価格帯の目安で、販売会社により異なります。主な副作用は代表的なものを一部抜粋しており、すべての副作用を網羅するものではありません。詳細な副作用情報は各添付文書をご確認ください。薬の変更・追加、体調の変化については必ず主治医・薬剤師にご相談ください。
 </footer>
 
 <script>
@@ -221,6 +245,7 @@ const DRUGS = [
     generic: "サラゾスルファピリジン",
     aliases: ["さらぞぴりん", "salazopyrin", "サラゾスルファピリジン", "sasp", "アザルフィジン"],
     efficacy: "潰瘍性大腸炎、限局性腸炎、非特異性大腸炎",
+    sideEffects: ["発疹・かゆみ", "食欲不振・吐き気", "頭痛", "発熱", "肝機能値の上昇", "白血球減少", "日光過敏(光線過敏症)"],
     variants: [
       {
         id: "salazopyrin-500", label: "錠500mg",
@@ -239,6 +264,7 @@ const DRUGS = [
     generic: "メサラジン",
     aliases: ["ぺんたさ", "pentasa", "メサラジン", "mesalazine"],
     efficacy: "潰瘍性大腸炎(重症を除く)、クローン病",
+    sideEffects: ["下痢", "腹痛", "悪心・嘔吐", "頭痛", "発熱", "肝機能値の上昇", "まれに膵炎・腎機能障害"],
     variants: [
       {
         id: "pentasa-500", label: "錠500mg",
@@ -284,6 +310,7 @@ const DRUGS = [
     generic: "メサラジン",
     aliases: ["あさこーる", "asacol", "メサラジン", "mesalazine"],
     efficacy: "潰瘍性大腸炎(重症を除く) ※クローン病の適応なし",
+    sideEffects: ["下痢", "腹痛", "悪心・嘔吐", "頭痛", "発熱", "肝機能値の上昇", "まれに膵炎・腎機能障害"],
     variants: [
       {
         id: "asacol-400", label: "錠400mg",
@@ -304,6 +331,7 @@ const DRUGS = [
     generic: "メサラジン(MMX)",
     aliases: ["りあるだ", "lialda", "mezavant", "メサラジン", "mmx", "mesalazine"],
     efficacy: "潰瘍性大腸炎(重症を除く) ※クローン病の適応なし",
+    sideEffects: ["下痢", "腹痛", "悪心・嘔吐", "頭痛", "発熱", "肝機能値の上昇", "まれに膵炎・腎機能障害"],
     variants: [
       {
         id: "lialda-1200", label: "錠1200mg",
@@ -451,6 +479,22 @@ function doseNoteOf(variant, regimen) {
   return `目安の飲み方(${regimen.scenario}): 1日${regimen.timesPerDay}回・${regimen.amount}`;
 }
 
+// 主な副作用 + 受診を促す注意書き(薬ブランド単位。規格・剤形が変わっても薬自体の傾向は同じため)
+function sideEffectsHtml(drug) {
+  if (!drug.sideEffects || drug.sideEffects.length === 0) return '';
+  return `
+    <div class="side-effects">
+      <span class="se-label">主な副作用</span>
+      <div class="se-tags">
+        ${drug.sideEffects.map(se => `<span class="se-tag">${se}</span>`).join('')}
+      </div>
+      <div class="side-effect-warn">
+        <span class="se-icon">⚠</span>
+        <span>これらの症状や、いつもと違う体調の変化に気づいたら、自己判断で中止・我慢せず、早めに医療機関(処方医または薬剤師)を受診してください。</span>
+      </div>
+    </div>`;
+}
+
 function currentCard(drug, variant) {
   const regimen = getDefaultRegimen(variant);
   return `
@@ -485,6 +529,7 @@ function currentCard(drug, variant) {
       ${genericRefRow(variant, regimen)}
       <p class="note">${doseNoteOf(variant, regimen)}</p>
       ${otherRegimensHtml(variant, regimen)}
+      ${sideEffectsHtml(drug)}
     </div>
   `;
 }
@@ -528,6 +573,7 @@ function optionCard(drug, variant, { isSibling }) {
       ${genericRefRow(variant, regimen)}
       <p class="note">${doseNoteOf(variant, regimen)}</p>
       ${otherRegimensHtml(variant, regimen)}
+      ${sideEffectsHtml(drug)}
       <button class="switch-btn" data-id="${variant.id}">これを「今飲んでいる薬」として見る</button>
     </div>
   `;
