@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お薬の好み登録</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --accent: #2f6b4f;
+    --accent-soft: #e7f0ea;
+    --text: #26302b;
+    --sub: #6b7570;
+    --border: #e2e0da;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  header { margin-bottom: 22px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .desc { font-size: 13px; color: var(--sub); line-height: 1.6; margin: 0; }
+
+  .step {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 16px;
+  }
+  .step-title { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+  .step-sub { font-size: 12px; color: var(--sub); margin: 0 0 14px; line-height: 1.6; }
+
+  .option-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .option-grid.cols-1 { grid-template-columns: 1fr; }
+  .option-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    text-align: left;
+    padding: 13px 14px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--bg);
+    cursor: pointer; font-family: inherit;
+    transition: border-color .15s, background .15s;
+  }
+  .option-btn .opt-main { font-size: 14px; font-weight: 700; color: var(--text); }
+  .option-btn .opt-sub { font-size: 11px; color: var(--sub); }
+  .option-btn:hover { border-color: #b9cdbf; }
+  .option-btn.selected {
+    border-color: var(--accent); background: var(--accent-soft);
+  }
+  .option-btn.selected .opt-main { color: var(--accent); }
+  .option-btn.selected::after {
+    content: "✓"; align-self: flex-end; margin-top: -18px;
+    color: var(--accent); font-weight: 700; font-size: 13px;
+  }
+
+  .sub-step {
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border);
+  }
+  .sub-step.hidden { display: none; }
+
+  .note-inline {
+    font-size: 11.5px; color: var(--sub); margin-top: 12px; line-height: 1.6;
+    background: var(--bg); border-radius: 8px; padding: 8px 10px;
+  }
+
+  .save-bar {
+    position: sticky; bottom: 12px; margin-top: 20px;
+  }
+  .save-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 700;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 12px; cursor: pointer;
+  }
+  .save-btn:disabled { background: #b9c4bd; cursor: not-allowed; }
+  .save-btn:not(:disabled):hover { background: #26583f; }
+
+  .saved-toast {
+    margin-top: 10px; text-align: center; font-size: 12.5px; color: var(--accent);
+    opacity: 0; transition: opacity .3s;
+  }
+  .saved-toast.show { opacity: 1; }
+
+  .summary-card {
+    background: var(--accent); color: #fff; border-radius: 14px;
+    padding: 16px 18px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.9;
+  }
+  .summary-card .label { font-size: 11px; opacity: .85; margin-bottom: 4px; }
+  .summary-card .row { display: flex; justify-content: space-between; }
+  .summary-card .row span:first-child { opacity: .85; }
+  .summary-card .row span:last-child { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>お薬の好み登録</h1>
+    <p class="desc">服用回数や剤型の好みを登録しておくと、次回から候補を絞り込みやすくなります。あくまで参考情報で、実際の処方は症状や薬の特性によって医師が判断します。</p>
+  </header>
+
+  <div id="summaryArea"></div>
+
+  <div class="step">
+    <p class="step-title">1. 服用回数の好み</p>
+    <p class="step-sub">1日に何回くらいまでなら続けやすいですか</p>
+    <div class="option-grid" id="freqOptions"></div>
+  </div>
+
+  <div class="step">
+    <p class="step-title">2. 剤型の好み</p>
+    <p class="step-sub">飲みやすいと感じる形はどれですか</p>
+    <div class="option-grid" id="formOptions"></div>
+    <p class="note-inline">お薬によっては剤型の選択肢がない(1つの形しかない)場合もあります。その際は近い選択肢を優先してご案内します。</p>
+
+    <div class="sub-step hidden" id="sizeStep">
+      <p class="step-title" style="font-size:13.5px;">錠剤の大きさの好み</p>
+      <p class="step-sub">錠剤を選んだ場合の、サイズの感じ方を教えてください</p>
+      <div class="option-grid cols-1" id="sizeOptions"></div>
+    </div>
+
+    <div class="sub-step hidden" id="powderStep">
+      <p class="step-title" style="font-size:13.5px;">粉薬・顆粒の味やにおいについて</p>
+      <p class="step-sub">粉薬・顆粒を選んだ場合の、感じ方を教えてください</p>
+      <div class="option-grid cols-1" id="powderOptions"></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <p class="step-title">3. 先発品・ジェネリックの希望</p>
+    <p class="step-sub">同じ成分でも「先発品」と「ジェネリック(後発品)」があります</p>
+    <div class="option-grid cols-1" id="brandOptions"></div>
+  </div>
+
+  <div class="step">
+    <p class="step-title">4. 薬価・自己負担のこだわり</p>
+    <p class="step-sub">費用面で優先したいことはありますか</p>
+    <div class="option-grid cols-1" id="priceOptions"></div>
+  </div>
+
+  <div class="save-bar">
+    <button class="save-btn" id="saveBtn" disabled>この内容で保存する</button>
+    <p class="saved-toast" id="savedToast">保存しました</p>
+  </div>
+</div>
+
+<script>
+const FREQ_OPTIONS = [
+  { id: "once", main: "1日1回", sub: "できるだけ少なく" },
+  { id: "twice", main: "1日2回", sub: "朝晩など" },
+  { id: "thrice", main: "1日3回", sub: "毎食後など" },
+  { id: "none", main: "特に希望なし", sub: "回数はこだわらない" }
+];
+
+const FORM_OPTIONS = [
+  { id: "tablet", main: "錠剤", sub: "" },
+  { id: "powder", main: "粉薬・顆粒", sub: "" },
+  { id: "capsule", main: "カプセル", sub: "" },
+  { id: "none", main: "特に希望なし", sub: "形はこだわらない" }
+];
+
+const SIZE_OPTIONS = [
+  { id: "small", main: "小さい方が良い", sub: "" },
+  { id: "large_ok", main: "ある程度大きくても気にならない", sub: "" },
+  { id: "none", main: "特に希望なし", sub: "" }
+];
+
+const POWDER_OPTIONS = [
+  { id: "sensitive", main: "味やにおいが気になる方だ", sub: "" },
+  { id: "not_sensitive", main: "あまり気にならない", sub: "" },
+  { id: "none", main: "特に希望なし", sub: "" }
+];
+
+const BRAND_OPTIONS = [
+  { id: "brand", main: "先発品にこだわりたい", sub: "" },
+  { id: "generic", main: "ジェネリックがあれば使いたい", sub: "" },
+  { id: "none", main: "特にこだわりなし", sub: "" }
+];
+
+const PRICE_OPTIONS = [
+  { id: "cheapest", main: "できるだけ安く抑えたい", sub: "" },
+  { id: "effect_priority", main: "価格より効果・飲みやすさを優先したい", sub: "" },
+  { id: "none", main: "特にこだわりなし", sub: "" }
+];
+
+let state = {
+  frequency: null,
+  form: null,
+  tabletSize: null,
+  powderFeel: null,
+  brandPreference: null,
+  pricePreference: null
+};
+
+const freqBox = document.getElementById('freqOptions');
+const formBox = document.getElementById('formOptions');
+const sizeBox = document.getElementById('sizeOptions');
+const sizeStep = document.getElementById('sizeStep');
+const powderBox = document.getElementById('powderOptions');
+const powderStep = document.getElementById('powderStep');
+const brandBox = document.getElementById('brandOptions');
+const priceBox = document.getElementById('priceOptions');
+const saveBtn = document.getElementById('saveBtn');
+const savedToast = document.getElementById('savedToast');
+const summaryArea = document.getElementById('summaryArea');
+
+const GROUP_KEY_MAP = {
+  freqOptions: 'frequency',
+  formOptions: 'form',
+  sizeOptions: 'tabletSize',
+  powderOptions: 'powderFeel',
+  brandOptions: 'brandPreference',
+  priceOptions: 'pricePreference'
+};
+
+function renderOptionGroup(container, options, groupKey) {
+  container.innerHTML = options.map(opt => `
+    <button type="button" class="option-btn" data-group="${groupKey}" data-id="${opt.id}">
+      <span class="opt-main">${opt.main}</span>
+      ${opt.sub ? `<span class="opt-sub">${opt.sub}</span>` : ''}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state[GROUP_KEY_MAP[groupKey]] = btn.dataset.id;
+      container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      if (groupKey === 'formOptions') {
+        if (btn.dataset.id === 'tablet') {
+          sizeStep.classList.remove('hidden');
+        } else {
+          sizeStep.classList.add('hidden');
+          state.tabletSize = null;
+          sizeBox.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+        }
+
+        if (btn.dataset.id === 'powder') {
+          powderStep.classList.remove('hidden');
+        } else {
+          powderStep.classList.add('hidden');
+          state.powderFeel = null;
+          powderBox.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+        }
+      }
+      updateSaveButton();
+      renderSummary();
+    });
+  });
+}
+
+function updateSaveButton() {
+  const requiresSize = state.form === 'tablet';
+  const ready = state.frequency && state.form && (!requiresSize || state.tabletSize);
+  saveBtn.disabled = !ready;
+}
+
+function labelFor(options, id) {
+  const found = options.find(o => o.id === id);
+  return found ? found.main : '未設定';
+}
+
+function renderSummary() {
+  if (!state.frequency && !state.form) {
+    summaryArea.innerHTML = '';
+    return;
+  }
+  let rows = `
+    <div class="row"><span>服用回数</span><span>${state.frequency ? labelFor(FREQ_OPTIONS, state.frequency) : '未設定'}</span></div>
+    <div class="row"><span>剤型</span><span>${state.form ? labelFor(FORM_OPTIONS, state.form) : '未設定'}</span></div>
+  `;
+  if (state.form === 'tablet') {
+    rows += `<div class="row"><span>錠剤の大きさ</span><span>${state.tabletSize ? labelFor(SIZE_OPTIONS, state.tabletSize) : '未設定'}</span></div>`;
+  }
+  if (state.form === 'powder') {
+    rows += `<div class="row"><span>粉薬・顆粒の味やにおい</span><span>${state.powderFeel ? labelFor(POWDER_OPTIONS, state.powderFeel) : '未設定'}</span></div>`;
+  }
+  if (state.brandPreference) {
+    rows += `<div class="row"><span>先発品/ジェネリック</span><span>${labelFor(BRAND_OPTIONS, state.brandPreference)}</span></div>`;
+  }
+  if (state.pricePreference) {
+    rows += `<div class="row"><span>薬価のこだわり</span><span>${labelFor(PRICE_OPTIONS, state.pricePreference)}</span></div>`;
+  }
+  summaryArea.innerHTML = `
+    <div class="summary-card">
+      <div class="label">登録済みの好み</div>
+      ${rows}
+    </div>
+  `;
+}
+
+async function loadSavedPreferences() {
+  try {
+    const res = await window.storage.get('drug-preferences', false);
+    if (res && res.value) {
+      const saved = JSON.parse(res.value);
+      state.frequency = saved.frequency || null;
+      state.form = saved.form || null;
+      state.tabletSize = saved.tabletSize || null;
+      state.powderFeel = saved.powderFeel || null;
+      state.brandPreference = saved.brandPreference || null;
+      state.pricePreference = saved.pricePreference || null;
+    }
+  } catch (e) {
+    // 保存データがない場合は未設定のまま
+  }
+
+  if (state.frequency) {
+    const btn = freqBox.querySelector(`[data-id="${state.frequency}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+  if (state.form) {
+    const btn = formBox.querySelector(`[data-id="${state.form}"]`);
+    if (btn) btn.classList.add('selected');
+    if (state.form === 'tablet') sizeStep.classList.remove('hidden');
+    if (state.form === 'powder') powderStep.classList.remove('hidden');
+  }
+  if (state.tabletSize) {
+    const btn = sizeBox.querySelector(`[data-id="${state.tabletSize}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+  if (state.powderFeel) {
+    const btn = powderBox.querySelector(`[data-id="${state.powderFeel}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+  if (state.brandPreference) {
+    const btn = brandBox.querySelector(`[data-id="${state.brandPreference}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+  if (state.pricePreference) {
+    const btn = priceBox.querySelector(`[data-id="${state.pricePreference}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+  updateSaveButton();
+  renderSummary();
+}
+
+saveBtn.addEventListener('click', async () => {
+  saveBtn.disabled = true;
+  saveBtn.textContent = '保存中...';
+  try {
+    const result = await window.storage.set('drug-preferences', JSON.stringify(state), false);
+    if (result) {
+      savedToast.classList.add('show');
+      renderSummary();
+      setTimeout(() => savedToast.classList.remove('show'), 2200);
+    }
+  } catch (e) {
+    savedToast.textContent = '保存に失敗しました。もう一度お試しください。';
+    savedToast.classList.add('show');
+    setTimeout(() => {
+      savedToast.classList.remove('show');
+      savedToast.textContent = '保存しました';
+    }, 2500);
+  }
+  saveBtn.textContent = 'この内容で保存する';
+  updateSaveButton();
+});
+
+renderOptionGroup(freqBox, FREQ_OPTIONS, 'freqOptions');
+renderOptionGroup(formBox, FORM_OPTIONS, 'formOptions');
+renderOptionGroup(sizeBox, SIZE_OPTIONS, 'sizeOptions');
+renderOptionGroup(powderBox, POWDER_OPTIONS, 'powderOptions');
+renderOptionGroup(brandBox, BRAND_OPTIONS, 'brandOptions');
+renderOptionGroup(priceBox, PRICE_OPTIONS, 'priceOptions');
+loadSavedPreferences();
+</script>
+</body>
+</html>
