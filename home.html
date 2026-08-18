@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホーム</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --accent: #2f6b4f;
+    --accent-soft: #e7f0ea;
+    --text: #26302b;
+    --sub: #6b7570;
+    --border: #e2e0da;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 22px 16px 60px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  .greeting { margin-bottom: 4px; }
+  .greeting .hello { font-size: 13px; color: var(--sub); }
+  .greeting h1 { font-size: 21px; margin: 4px 0 0; }
+  .greeting .sub { font-size: 13px; color: var(--sub); margin: 6px 0 0; line-height: 1.6; }
+
+  /* 今飲んでいる薬のミニカード */
+  .current-mini {
+    margin-top: 18px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+  }
+  .current-mini:active { background: var(--accent-soft); }
+  .pill-dot {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: #cfc9bd; border: 1px solid rgba(0,0,0,0.15);
+  }
+  .current-mini .body { flex: 1; }
+  .current-mini .cm-label { font-size: 10.5px; color: var(--sub); }
+  .current-mini .cm-name { font-size: 15px; font-weight: 700; margin-top: 1px; }
+  .current-mini .cm-sub { font-size: 11.5px; color: var(--sub); margin-top: 1px; }
+  .current-mini .chevron { color: var(--sub); font-size: 18px; flex-shrink: 0; }
+
+  /* メインCTA */
+  .main-cta {
+    margin-top: 20px; width: 100%; text-align: left;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 16px; padding: 20px; cursor: pointer;
+    font-family: inherit;
+  }
+  .main-cta:active { background: #26583f; }
+  .main-cta .mc-label { font-size: 11.5px; opacity: .85; }
+  .main-cta .mc-title { font-size: 19px; font-weight: 700; margin-top: 4px; }
+  .main-cta .mc-hint {
+    font-size: 12.5px; margin-top: 8px; line-height: 1.6;
+    background: rgba(255,255,255,0.16); border-radius: 8px; padding: 8px 10px;
+  }
+  .main-cta .mc-hint b { font-weight: 700; }
+  .main-cta .mc-arrow { text-align: right; margin-top: 10px; font-size: 14px; opacity: .9; }
+
+  /* サブアクション */
+  .section-label { font-size: 12px; color: var(--sub); margin: 22px 0 10px; font-weight: 700; }
+  .sub-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .sub-btn {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 14px; text-align: left;
+    cursor: pointer; font-family: inherit;
+  }
+  .sub-btn:active { background: var(--accent-soft); border-color: var(--accent); }
+  .sub-btn .icon { font-size: 20px; }
+  .sub-btn .sb-title { font-size: 13.5px; font-weight: 700; margin-top: 8px; }
+  .sub-btn .sb-sub { font-size: 11px; color: var(--sub); margin-top: 3px; line-height: 1.5; }
+
+  /* 相談メモ導線(全幅) */
+  .consult-btn {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .consult-btn .icon { flex-shrink: 0; }
+  .consult-btn .txt { flex: 1; }
+
+  footer {
+    max-width: 560px; margin: 30px auto 0; font-size: 11px; color: var(--sub);
+    line-height: 1.7; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="greeting">
+    <div class="hello">こんにちは</div>
+    <h1>なにをしますか?</h1>
+    <p class="sub">お医者さんに相談する前に、今の薬について知ったり、他の選択肢を探したりできます。</p>
+  </div>
+
+  <!-- 今飲んでいる薬(比較の起点として常設) -->
+  <div class="current-mini" id="currentMiniBtn">
+    <div class="pill-dot"></div>
+    <div class="body">
+      <div class="cm-label">今飲んでいる薬</div>
+      <div class="cm-name">ペンタサ錠500mg</div>
+      <div class="cm-sub">1日3回・1,500mg/日</div>
+    </div>
+    <div class="chevron">›</div>
+  </div>
+
+  <!-- メインCTA:他の選択肢との出会い -->
+  <button class="main-cta" id="meetBtn">
+    <div class="mc-label">くすりとであう</div>
+    <div class="mc-title">他にも選択肢があるか見てみる</div>
+    <div class="mc-hint">登録した好み(回数・剤型)に近い選択肢が <b>3件</b> 見つかっています</div>
+    <div class="mc-arrow">見てみる ›</div>
+  </button>
+
+  <div class="section-label">その他のメニュー</div>
+  <div class="sub-actions">
+    <button class="sub-btn" id="searchBtn">
+      <div class="icon">🔍</div>
+      <div class="sb-title">くすりをしらべる</div>
+      <div class="sb-sub">薬の名前から詳しく調べる</div>
+    </button>
+
+    <button class="sub-btn" id="prefBtn">
+      <div class="icon">🎯</div>
+      <div class="sb-title">好みを登録する</div>
+      <div class="sb-sub">回数・剤型の希望を教える</div>
+    </button>
+
+    <button class="sub-btn consult-btn" id="noteBtn">
+      <div class="icon">📝</div>
+      <div class="txt">
+        <div class="sb-title">先生に相談するメモを作る</div>
+        <div class="sb-sub">気になっている薬や聞きたいことをまとめて、診察の時にそのまま伝えられるようにします</div>
+      </div>
+    </button>
+  </div>
+
+  <div class="section-label">気になる薬(お気に入り)</div>
+  <div class="sub-actions">
+    <button class="sub-btn consult-btn" id="favBtn">
+      <div class="icon">☆</div>
+      <div class="txt">
+        <div class="sb-title">気になる薬を見る</div>
+        <div class="sb-sub">「くすりとであう」や検索画面で☆をつけた薬をまとめて確認できます</div>
+      </div>
+    </button>
+  </div>
+
+</div>
+
+<footer>
+  このアプリは薬に関する一般的な情報を整理するためのもので、診断や処方を行うものではありません。薬の変更は必ず主治医・薬剤師にご相談ください。
+</footer>
+
+<script>
+// ここでは画面遷移の代わりに、押した先の意図をコンソールに出すだけのスタブにしています。
+// 実装時は各ボタンのイベント内で該当画面への遷移処理に差し替えてください。
+function goTo(dest) {
+  console.log('navigate ->', dest);
+}
+document.getElementById('currentMiniBtn').addEventListener('click', () => goTo('drug-detail:pentasa-500'));
+document.getElementById('meetBtn').addEventListener('click', () => goTo('discover'));
+document.getElementById('searchBtn').addEventListener('click', () => goTo('search'));
+document.getElementById('prefBtn').addEventListener('click', () => goTo('preferences'));
+document.getElementById('noteBtn').addEventListener('click', () => goTo('consult-note'));
+document.getElementById('favBtn').addEventListener('click', () => goTo('favorites'));
+</script>
+</body>
+</html>
