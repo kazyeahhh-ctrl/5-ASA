@@ -271,9 +271,10 @@ function renderSummary() {
     : 'これでホーム画面に進めます。好みはいつでもあとから設定できます。';
 }
 
+// ブラウザ標準のlocalStorageを使う(GitHub Pagesなど通常のサイトで動かすため)
 async function saveProfile() {
   try {
-    await window.storage.set('onboarding-profile', JSON.stringify(profile), false);
+    localStorage.setItem('onboarding-profile', JSON.stringify(profile));
   } catch (e) {
     // 保存に失敗しても画面遷移は続行する
   }
