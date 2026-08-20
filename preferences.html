@@ -301,11 +301,12 @@ function renderSummary() {
   `;
 }
 
+// ブラウザ標準のlocalStorageを使う(GitHub Pagesなど通常のサイトで動かすため)
 async function loadSavedPreferences() {
   try {
-    const res = await window.storage.get('drug-preferences', false);
-    if (res && res.value) {
-      const saved = JSON.parse(res.value);
+    const raw = localStorage.getItem('drug-preferences');
+    if (raw) {
+      const saved = JSON.parse(raw);
       state.frequency = saved.frequency || null;
       state.form = saved.form || null;
       state.tabletSize = saved.tabletSize || null;
@@ -351,17 +352,15 @@ saveBtn.addEventListener('click', async () => {
   saveBtn.disabled = true;
   saveBtn.textContent = '保存中...';
   try {
-    const result = await window.storage.set('drug-preferences', JSON.stringify(state), false);
-    if (result) {
-      savedToast.textContent = '保存されました。内容はいつでも変更できます。';
-      savedToast.classList.add('show');
-      renderSummary();
-      // メッセージを少し見せてから、同種同効薬の検索画面へ移動する
-      setTimeout(() => {
-        window.location.href = 'search.html';
-      }, 1600);
-      return; // 遷移するのでボタンの状態は戻さない
-    }
+    localStorage.setItem('drug-preferences', JSON.stringify(state));
+    savedToast.textContent = '保存されました。内容はいつでも変更できます。';
+    savedToast.classList.add('show');
+    renderSummary();
+    // メッセージを少し見せてから、同種同効薬の検索画面へ移動する
+    setTimeout(() => {
+      window.location.href = 'search.html';
+    }, 1600);
+    return; // 遷移するのでボタンの状態は戻さない
   } catch (e) {
     savedToast.textContent = '保存に失敗しました。もう一度お試しください。';
     savedToast.classList.add('show');
