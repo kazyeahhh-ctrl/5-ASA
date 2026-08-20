@@ -365,11 +365,12 @@ DRUGS.forEach(drug => {
 // お気に入り(気になる薬)の状態管理
 let favorites = new Set();
 
+// ブラウザ標準のlocalStorageを使う(GitHub Pagesなど通常のサイトで動かすため)
 async function loadFavorites() {
   try {
-    const res = await window.storage.get('favorites', false);
-    if (res && res.value) {
-      favorites = new Set(JSON.parse(res.value));
+    const raw = localStorage.getItem('favorites');
+    if (raw) {
+      favorites = new Set(JSON.parse(raw));
     }
   } catch (e) {
     favorites = new Set();
@@ -383,7 +384,7 @@ async function toggleFavorite(variantId) {
     favorites.add(variantId);
   }
   try {
-    await window.storage.set('favorites', JSON.stringify([...favorites]), false);
+    localStorage.setItem('favorites', JSON.stringify([...favorites]));
   } catch (e) {
     // 保存に失敗しても表示上のトグルは維持する
   }
