@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロフィール作成</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card: #ffffff;
+    --accent: #2f6b4f;
+    --accent-soft: #e7f0ea;
+    --text: #26302b;
+    --sub: #6b7570;
+    --border: #e2e0da;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 22px 16px 40px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; min-height: calc(100vh - 62px); }
+
+  /* ステップインジケーター */
+  .step-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 22px; }
+  .step-dots .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: background .2s, width .2s; }
+  .step-dots .dot.active { background: var(--accent); width: 18px; border-radius: 4px; }
+  .step-dots .dot.done { background: #b9cdbf; }
+
+  .screen { display: none; flex: 1; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  .icon-badge {
+    width: 52px; height: 52px; border-radius: 16px; background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    margin-bottom: 16px;
+  }
+  h1 { font-size: 21px; margin: 0 0 8px; }
+  .lead { font-size: 13.5px; color: var(--sub); line-height: 1.7; margin: 0 0 22px; }
+
+  input[type="text"] {
+    width: 100%; padding: 15px 16px; font-size: 16px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--card); outline: none; font-family: inherit;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  .field-note { font-size: 11.5px; color: var(--sub); margin-top: 8px; line-height: 1.6; }
+
+  .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .drug-btn {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    padding: 13px 14px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--card);
+    cursor: pointer; font-family: inherit;
+  }
+  .drug-btn .dot-icon { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+  .drug-btn .d-main { font-size: 14px; font-weight: 700; }
+  .drug-btn .d-sub { font-size: 10.5px; color: var(--sub); }
+  .drug-btn.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .drug-btn.selected .d-main { color: var(--accent); }
+  .drug-btn.unsure { grid-column: 1 / -1; justify-content: center; }
+
+  .invite-card {
+    margin-top: 4px; background: var(--card); border: 1px dashed var(--accent);
+    border-radius: 14px; padding: 18px;
+  }
+  .invite-card .ic-title { font-size: 14.5px; font-weight: 700; }
+  .invite-card .ic-sub { font-size: 12px; color: var(--sub); margin-top: 4px; line-height: 1.6; }
+  .invite-card .ic-btn {
+    margin-top: 14px; width: 100%; padding: 12px; font-size: 13.5px; font-weight: 700;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer;
+  }
+  .invite-card.opted .ic-btn { background: var(--accent-soft); color: var(--accent); }
+  .invite-card .ic-status { font-size: 12px; color: var(--accent); margin-top: 10px; font-weight: 700; display: none; }
+  .invite-card.opted .ic-status { display: block; }
+
+  .complete-icon { font-size: 40px; text-align: center; margin: 10px 0 4px; }
+  .summary-list { margin-top: 18px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .summary-list .row { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--bg); }
+  .summary-list .row:last-child { border-bottom: none; }
+  .summary-list .row span:first-child { color: var(--sub); }
+  .summary-list .row span:last-child { font-weight: 700; }
+
+  .nav-row { margin-top: auto; padding-top: 22px; display: flex; gap: 10px; }
+  .btn-primary {
+    flex: 1; padding: 14px; font-size: 15px; font-weight: 700;
+    background: var(--accent); color: #fff; border: none; border-radius: 12px; cursor: pointer;
+  }
+  .btn-primary:hover { background: #26583f; }
+  .btn-text {
+    padding: 14px 8px; font-size: 13px; color: var(--sub); background: none; border: none; cursor: pointer;
+  }
+  .btn-back { padding: 14px 8px; font-size: 13px; color: var(--sub); background: none; border: none; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="step-dots" id="stepDots"></div>
+
+  <!-- ステップ0: ようこそ -->
+  <div class="screen" data-step="0">
+    <div class="icon-badge">👋</div>
+    <h1>ようこそ</h1>
+    <p class="lead">お医者さんに相談する前に、今の薬について知ったり、他の選択肢を探したりできるアプリです。<br><br>使い始める前に、簡単な質問にお答えください(30秒ほどです)。</p>
+    <div class="nav-row">
+      <button class="btn-primary" data-next>はじめる</button>
+    </div>
+  </div>
+
+  <!-- ステップ1: ニックネーム -->
+  <div class="screen" data-step="1">
+    <div class="icon-badge">✏️</div>
+    <h1>呼び方を教えてください</h1>
+    <p class="lead">アプリ内での表示に使います。ニックネームで構いません。</p>
+    <input type="text" id="nicknameInput" placeholder="例: たろう" maxlength="20">
+    <p class="field-note">本名でなくて大丈夫です。あとから変更もできます。</p>
+    <div class="nav-row">
+      <button class="btn-back" data-back>戻る</button>
+      <button class="btn-text" data-next>スキップ</button>
+      <button class="btn-primary" data-next>次へ</button>
+    </div>
+  </div>
+
+  <!-- ステップ2: 今飲んでいる薬 -->
+  <div class="screen" data-step="2">
+    <div class="icon-badge">💊</div>
+    <h1>今飲んでいる薬は?</h1>
+    <p class="lead">わかる範囲で大丈夫です。ホーム画面にすぐ表示され、他の選択肢と比較しやすくなります。</p>
+    <div class="option-grid" id="drugGrid"></div>
+    <div class="nav-row">
+      <button class="btn-back" data-back>戻る</button>
+      <button class="btn-text" data-next>スキップ</button>
+      <button class="btn-primary" data-next>次へ</button>
+    </div>
+  </div>
+
+  <!-- ステップ3: 好みの登録への案内 -->
+  <div class="screen" data-step="3">
+    <div class="icon-badge">🎯</div>
+    <h1>好みも登録しますか?</h1>
+    <p class="lead">服用回数や剤型(錠剤・粉薬など)の好みを登録しておくと、あなたに近い選択肢を見つけやすくなります。</p>
+    <div class="invite-card" id="prefInviteCard">
+      <div class="ic-title">好みの登録(1分ほど)</div>
+      <div class="ic-sub">服用回数・剤型・先発品/ジェネリックの希望などを聞きます。あとからいつでも設定・変更できます。</div>
+      <button class="ic-btn" id="prefOptBtn">今すぐ設定する</button>
+      <div class="ic-status" id="prefOptStatus">✓ あとで好み登録画面に進みます</div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" data-back>戻る</button>
+      <button class="btn-text" data-next>あとで設定する</button>
+      <button class="btn-primary" data-next>次へ</button>
+    </div>
+  </div>
+
+  <!-- ステップ4: 完了 -->
+  <div class="screen" data-step="4">
+    <div class="complete-icon">🎉</div>
+    <h1 style="text-align:center;">準備ができました</h1>
+    <p class="lead" style="text-align:center;" id="completeLead">これでホーム画面に進めます。</p>
+    <div class="summary-list" id="summaryList"></div>
+    <div class="nav-row">
+      <button class="btn-primary" id="finishBtn">ホームへ進む</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DRUG_CHOICES = [
+  { id: "salazopyrin", name: "サラゾピリン", color: "#d8b23a" },
+  { id: "pentasa", name: "ペンタサ", color: "#cfc9bd" },
+  { id: "asacol", name: "アサコール", color: "#a05a45" },
+  { id: "lialda", name: "リアルダ", color: "#9c4a3c" }
+];
+
+let profile = {
+  nickname: "",
+  currentDrugId: null,
+  wantsPrefsNow: false
+};
+
+let currentStep = 0;
+const totalSteps = 5;
+const screens = document.querySelectorAll('.screen');
+const stepDots = document.getElementById('stepDots');
+
+function renderDots() {
+  stepDots.innerHTML = '';
+  for (let i = 0; i < totalSteps; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === currentStep ? ' active' : (i < currentStep ? ' done' : ''));
+    stepDots.appendChild(dot);
+  }
+}
+
+function showStep(step) {
+  currentStep = step;
+  screens.forEach(s => {
+    s.classList.toggle('active', Number(s.dataset.step) === step);
+  });
+  renderDots();
+  if (step === 4) renderSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('[data-next]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentStep === 1) profile.nickname = document.getElementById('nicknameInput').value.trim();
+    if (currentStep < totalSteps - 1) showStep(currentStep + 1);
+  });
+});
+
+document.querySelectorAll('[data-back]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentStep > 0) showStep(currentStep - 1);
+  });
+});
+
+// 薬選択グリッド
+const drugGrid = document.getElementById('drugGrid');
+drugGrid.innerHTML = DRUG_CHOICES.map(d => `
+  <button type="button" class="drug-btn" data-id="${d.id}">
+    <span class="dot-icon" style="background-color:${d.color};"></span>
+    <div>
+      <div class="d-main">${d.name}</div>
+    </div>
+  </button>
+`).join('') + `
+  <button type="button" class="drug-btn unsure" data-id="unsure">
+    <div class="d-main">まだ決まっていない/わからない</div>
+  </button>
+`;
+drugGrid.querySelectorAll('.drug-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    profile.currentDrugId = btn.dataset.id;
+    drugGrid.querySelectorAll('.drug-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+
+// 好み登録への案内カード
+const prefInviteCard = document.getElementById('prefInviteCard');
+const prefOptBtn = document.getElementById('prefOptBtn');
+prefOptBtn.addEventListener('click', () => {
+  profile.wantsPrefsNow = !profile.wantsPrefsNow;
+  prefInviteCard.classList.toggle('opted', profile.wantsPrefsNow);
+  prefOptBtn.textContent = profile.wantsPrefsNow ? '設定を取り消す' : '今すぐ設定する';
+});
+
+function drugLabel(id) {
+  if (!id) return '未設定';
+  if (id === 'unsure') return 'まだ決まっていない';
+  const found = DRUG_CHOICES.find(d => d.id === id);
+  return found ? found.name : '未設定';
+}
+
+function renderSummary() {
+  const rows = `
+    <div class="row"><span>呼び方</span><span>${profile.nickname || '未設定'}</span></div>
+    <div class="row"><span>今の薬</span><span>${drugLabel(profile.currentDrugId)}</span></div>
+    <div class="row"><span>好みの登録</span><span>${profile.wantsPrefsNow ? 'このあと設定する' : 'あとで設定する'}</span></div>
+  `;
+  document.getElementById('summaryList').innerHTML = rows;
+  document.getElementById('completeLead').textContent = profile.wantsPrefsNow
+    ? 'このあと、好みの登録画面に案内します。'
+    : 'これでホーム画面に進めます。好みはいつでもあとから設定できます。';
+}
+
+async function saveProfile() {
+  try {
+    await window.storage.set('onboarding-profile', JSON.stringify(profile), false);
+  } catch (e) {
+    // 保存に失敗しても画面遷移は続行する
+  }
+}
+
+document.getElementById('finishBtn').addEventListener('click', async () => {
+  await saveProfile();
+  // 本来はここで home.html / preferences.html へ遷移する処理を入れる想定
+  // (今回はリンクを繋がない指定のため、完了状態の表示のみ)
+  const btn = document.getElementById('finishBtn');
+  btn.textContent = profile.wantsPrefsNow ? '好み登録画面へ(未接続)' : 'ホームへ(未接続)';
+  btn.disabled = true;
+});
+
+showStep(0);
+</script>
+</body>
+</html>
