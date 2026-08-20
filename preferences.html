@@ -85,6 +85,13 @@
   }
   .saved-toast.show { opacity: 1; }
 
+  .back-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; color: var(--sub); text-decoration: none;
+    margin-bottom: 14px;
+  }
+  .back-link:hover { color: var(--accent); }
+
   .summary-card {
     background: var(--accent); color: #fff; border-radius: 14px;
     padding: 16px 18px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.9;
@@ -97,6 +104,7 @@
 </head>
 <body>
 <div class="wrap">
+  <a href="home.html" class="back-link">‹ ホームへ</a>
   <header>
     <h1>お薬の好み登録</h1>
     <p class="desc">服用回数や剤型の好みを登録しておくと、次回から候補を絞り込みやすくなります。あくまで参考情報で、実際の処方は症状や薬の特性によって医師が判断します。</p>
@@ -143,7 +151,7 @@
 
   <div class="save-bar">
     <button class="save-btn" id="saveBtn" disabled>この内容で保存する</button>
-    <p class="saved-toast" id="savedToast">保存しました</p>
+    <p class="saved-toast" id="savedToast">保存されました。内容はいつでも変更できます。</p>
   </div>
 </div>
 
@@ -345,16 +353,21 @@ saveBtn.addEventListener('click', async () => {
   try {
     const result = await window.storage.set('drug-preferences', JSON.stringify(state), false);
     if (result) {
+      savedToast.textContent = '保存されました。内容はいつでも変更できます。';
       savedToast.classList.add('show');
       renderSummary();
-      setTimeout(() => savedToast.classList.remove('show'), 2200);
+      // メッセージを少し見せてから、同種同効薬の検索画面へ移動する
+      setTimeout(() => {
+        window.location.href = 'search.html';
+      }, 1600);
+      return; // 遷移するのでボタンの状態は戻さない
     }
   } catch (e) {
     savedToast.textContent = '保存に失敗しました。もう一度お試しください。';
     savedToast.classList.add('show');
     setTimeout(() => {
       savedToast.classList.remove('show');
-      savedToast.textContent = '保存しました';
+      savedToast.textContent = '保存されました。内容はいつでも変更できます。';
     }, 2500);
   }
   saveBtn.textContent = 'この内容で保存する';
