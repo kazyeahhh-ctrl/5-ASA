@@ -100,13 +100,13 @@
     <p class="sub">お医者さんに相談する前に、今の薬について知ったり、他の選択肢を探したりできます。</p>
   </div>
 
-  <!-- 今飲んでいる薬(比較の起点として常設) -->
+  <!-- 今飲んでいる薬(比較の起点として常設)。未登録の場合はJSで非表示にする -->
   <div class="current-mini" id="currentMiniBtn">
-    <div class="pill-dot"></div>
+    <div class="pill-dot" id="cmDot"></div>
     <div class="body">
       <div class="cm-label">今飲んでいる薬</div>
-      <div class="cm-name">ペンタサ錠500mg</div>
-      <div class="cm-sub">1日3回・1,500mg/日</div>
+      <div class="cm-name" id="cmName">-</div>
+      <div class="cm-sub" id="cmSub"></div>
     </div>
     <div class="chevron">›</div>
   </div>
@@ -115,7 +115,7 @@
   <button class="main-cta" id="meetBtn">
     <div class="mc-label">くすりとであう</div>
     <div class="mc-title">他にも選択肢があるか見てみる</div>
-    <div class="mc-hint">登録した好み(回数・剤型)に近い選択肢が <b>3件</b> 見つかっています</div>
+    <div class="mc-hint" id="mcHint">登録した好み(回数・剤型)に近い選択肢が <b>3件</b> 見つかっています</div>
     <div class="mc-arrow">見てみる ›</div>
   </button>
 
@@ -136,7 +136,7 @@
     <button class="sub-btn consult-btn" id="noteBtn">
       <div class="icon">📝</div>
       <div class="txt">
-        <div class="sb-title">先生に相談するメモを作る</div>
+        <div class="sb-title">先生に相談するメモを作る <span style="font-size:10px;color:var(--sub);font-weight:400;">(準備中)</span></div>
         <div class="sb-sub">気になっている薬や聞きたいことをまとめて、診察の時にそのまま伝えられるようにします</div>
       </div>
     </button>
@@ -160,12 +160,57 @@
 </footer>
 
 <script>
-// ここでは画面遷移の代わりに、押した先の意図をコンソールに出すだけのスタブにしています。
-// 実装時は各ボタンのイベント内で該当画面への遷移処理に差し替えてください。
-function goTo(dest) {
-  console.log('navigate ->', dest);
+// プロフィール作成画面(index.html)で選んだ「今飲んでいる薬」の薬ID → 検索画面側のvariant IDへの対応表
+// (薬ごとの代表規格。search.html側のDRUGSデータと対応させています)
+const CURRENT_DRUG_MAP = {
+  salazopyrin: { variantId: 'salazopyrin-500', name: 'サラゾピリン錠500mg', sub: '1日4回・2,000mg/日', color: '#d8b23a' },
+  pentasa:     { variantId: 'pentasa-500',     name: 'ペンタサ錠500mg',     sub: '1日3回・1,500mg/日', color: '#cfc9bd' },
+  asacol:      { variantId: 'asacol-400',      name: 'アサコール錠400mg',   sub: '1日3回・2,400mg/日', color: '#a05a45' },
+  lialda:      { variantId: 'lialda-1200',     name: 'リアルダ錠1200mg',    sub: '1日1回・2,400mg/日', color: '#9c4a3c' }
+};
+
+function getRegisteredDrug() {
+  try {
+    const raw = localStorage.getItem('onboarding-profile');
+    if (!raw) return null;
+    const profile = JSON.parse(raw);
+    if (!profile.currentDrugId || profile.currentDrugId === 'unsure') return null;
+    return CURRENT_DRUG_MAP[profile.currentDrugId] || null;
+  } catch (e) {
+    return null;
+  }
 }
-document.getElementById('currentMiniBtn').addEventListener('click', () => goTo('drug-detail:pentasa-500'));
+
+const registeredDrug = getRegisteredDrug();
+const currentMiniBtn = document.getElementById('currentMiniBtn');
+
+if (registeredDrug) {
+  document.getElementById('cmName').textContent = registeredDrug.name;
+  document.getElementById('cmSub').textContent = registeredDrug.sub;
+  document.getElementById('cmDot').style.backgroundColor = registeredDrug.color;
+} else {
+  // 今の薬が未登録の場合は、このカード自体を表示しない
+  currentMiniBtn.style.display = 'none';
+  document.getElementById('mcHint').textContent = '今の薬を登録すると、近い選択肢をすぐに見つけやすくなります';
+}
+
+// ここでの遷移は同じリポジトリ内の各htmlファイルへのリンクです。
+// ファイル名が変わらない限り、中身を後から更新してもリンクは機能し続けます。
+function goTo(dest) {
+  const routes = {
+    // 今の薬が登録済みなら、その薬の比較結果画面へ直接。未登録なら空の検索画面へ。
+    'drug-detail': registeredDrug ? `search.html?drug=${registeredDrug.variantId}` : 'search.html',
+    'discover': registeredDrug ? `search.html?drug=${registeredDrug.variantId}` : 'search.html',
+    'search': 'search.html', // 「くすりをしらべる」は常に空の検索窓から
+    'preferences': 'preferences.html',
+    'favorites': 'search.html'
+    // 'consult-note' はまだ画面が無いため未登録(準備中)
+  };
+  if (routes[dest]) {
+    window.location.href = routes[dest];
+  }
+}
+currentMiniBtn.addEventListener('click', () => goTo('drug-detail'));
 document.getElementById('meetBtn').addEventListener('click', () => goTo('discover'));
 document.getElementById('searchBtn').addEventListener('click', () => goTo('search'));
 document.getElementById('prefBtn').addEventListener('click', () => goTo('preferences'));
