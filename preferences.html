@@ -356,9 +356,9 @@ saveBtn.addEventListener('click', async () => {
     savedToast.textContent = '保存されました。内容はいつでも変更できます。';
     savedToast.classList.add('show');
     renderSummary();
-    // メッセージを少し見せてから、同種同効薬の検索画面へ移動する
+    // メッセージを少し見せてから、ホーム画面へ移動する
     setTimeout(() => {
-      window.location.href = 'search.html';
+      window.location.href = 'home.html';
     }, 1600);
     return; // 遷移するのでボタンの状態は戻さない
   } catch (e) {
