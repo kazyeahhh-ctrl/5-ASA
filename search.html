@@ -666,7 +666,25 @@ document.addEventListener('click', (e) => {
   }
 });
 
-renderEmpty();
+// URLに ?drug=variantId が付いている場合は、検索窓を使わずに
+// いきなりその薬の比較結果を表示する(ホーム画面の「今の薬」経由の遷移用)
+function initFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const initialId = params.get('drug');
+  if (initialId) {
+    const match = ALL_VARIANTS.find(({ variant }) => variant.id === initialId);
+    if (match) {
+      searchInput.value = match.drug.brand + match.variant.label;
+      renderResult(match.drug, match.variant);
+      return true;
+    }
+  }
+  return false;
+}
+
+if (!initFromQuery()) {
+  renderEmpty();
+}
 loadFavorites();
 </script>
 </body>
