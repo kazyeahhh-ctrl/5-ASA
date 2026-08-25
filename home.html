@@ -136,7 +136,7 @@
     <button class="sub-btn consult-btn" id="noteBtn">
       <div class="icon">📝</div>
       <div class="txt">
-        <div class="sb-title">先生に相談するメモを作る <span style="font-size:10px;color:var(--sub);font-weight:400;">(準備中)</span></div>
+        <div class="sb-title">先生に相談するメモを作る</div>
         <div class="sb-sub">気になっている薬や聞きたいことをまとめて、診察の時にそのまま伝えられるようにします</div>
       </div>
     </button>
@@ -203,8 +203,8 @@ function goTo(dest) {
     'discover': registeredDrug ? `search.html?drug=${registeredDrug.variantId}` : 'search.html',
     'search': 'search.html', // 「くすりをしらべる」は常に空の検索窓から
     'preferences': 'preferences.html',
-    'favorites': 'search.html'
-    // 'consult-note' はまだ画面が無いため未登録(準備中)
+    'favorites': 'search.html',
+    'consult-note': 'consult-note.html'
   };
   if (routes[dest]) {
     window.location.href = routes[dest];
