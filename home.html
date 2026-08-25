@@ -203,7 +203,7 @@ function goTo(dest) {
     'discover': registeredDrug ? `search.html?drug=${registeredDrug.variantId}` : 'search.html',
     'search': 'search.html', // 「くすりをしらべる」は常に空の検索窓から
     'preferences': 'preferences.html',
-    'favorites': 'search.html',
+    'favorites': 'search.html?view=favorites',
     'consult-note': 'consult-note.html'
   };
   if (routes[dest]) {
