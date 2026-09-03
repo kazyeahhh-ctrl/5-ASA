@@ -212,6 +212,15 @@
   }
 
   .empty-state { margin-top: 30px; text-align: center; color: var(--sub); font-size: 13px; line-height: 1.8; }
+
+  .fav-toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 12px);
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 700;
+    padding: 10px 18px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+    white-space: nowrap; z-index: 50;
+  }
+  .fav-toast.show { opacity: 1; transform: translate(-50%, 0); }
   .not-found {
     margin-top: 20px; background: var(--warn-bg); border: 1px solid var(--warn-border);
     color: var(--warn-text); border-radius: 12px; padding: 14px 16px;
@@ -238,6 +247,7 @@
   <p class="hint">先発品名・一般名(成分名)のどちらでも検索できます</p>
 
   <div id="result"></div>
+  <div class="fav-toast" id="favToast"></div>
 </div>
 
 <footer>
@@ -587,7 +597,50 @@ function optionCard(drug, variant, { isSibling }) {
   `;
 }
 
+let currentView = 'search'; // 'search' | 'favorites' — ☆トグル後にどちらを再描画するか判定するため
+
+function showFavToast(message) {
+  const toast = document.getElementById('favToast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(showFavToast._t);
+  showFavToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+// switch-btn(この薬に切り替え)・fav-btn(☆トグル)の挙動を、結果一覧・お気に入り一覧の両方で使い回す
+function wireResultButtons() {
+  resultBox.querySelectorAll('.switch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const match = ALL_VARIANTS.find(({ variant }) => variant.id === btn.dataset.id);
+      currentView = 'search';
+      searchInput.value = match.drug.brand + match.variant.label;
+      renderResult(match.drug, match.variant);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  resultBox.querySelectorAll('.fav-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.favId;
+      await toggleFavorite(id);
+      const isFav = favorites.has(id);
+
+      if (currentView === 'favorites') {
+        // お気に入り一覧を見ている時に外したら、その場でリストから消す
+        showFavToast(isFav ? '☆ 気になる薬に追加しました' : '☆ 気になる薬から外しました');
+        renderFavoritesList();
+      } else {
+        btn.textContent = isFav ? '★' : '☆';
+        btn.classList.toggle('active', isFav);
+        showFavToast(isFav ? '☆ 気になる薬に追加しました' : '☆ 気になる薬から外しました');
+      }
+    });
+  });
+}
+
 function renderResult(selectedDrug, selectedVariant) {
+  currentView = 'search';
   const siblings = selectedDrug.variants.filter(v => v.id !== selectedVariant.id);
   const otherDrugs = DRUGS.filter(d => d.id !== selectedDrug.id);
 
@@ -607,29 +660,36 @@ function renderResult(selectedDrug, selectedVariant) {
   });
 
   resultBox.innerHTML = html;
+  wireResultButtons();
+}
 
-  resultBox.querySelectorAll('.switch-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const match = ALL_VARIANTS.find(({ variant }) => variant.id === btn.dataset.id);
-      searchInput.value = match.drug.brand + match.variant.label;
-      renderResult(match.drug, match.variant);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-  });
+// ☆で登録した薬だけを一覧表示する(ホーム画面の「気になる薬」ボタンから遷移)
+function renderFavoritesList() {
+  currentView = 'favorites';
+  const favIds = [...favorites];
 
-  resultBox.querySelectorAll('.fav-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const id = btn.dataset.favId;
-      await toggleFavorite(id);
-      const isFav = favorites.has(id);
-      btn.textContent = isFav ? '★' : '☆';
-      btn.classList.toggle('active', isFav);
-    });
+  if (favIds.length === 0) {
+    resultBox.innerHTML = `
+      <div class="empty-state">
+        ☆で登録した薬がまだありません。<br>
+        検索結果の☆マークを押すと、ここに一覧表示されます。
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="section-title">気になる薬(☆)・${favIds.length}件</div>`;
+  favIds.forEach(id => {
+    const match = ALL_VARIANTS.find(({ variant }) => variant.id === id);
+    if (match) {
+      html += optionCard(match.drug, match.variant, { isSibling: false });
+    }
   });
+  resultBox.innerHTML = html;
+  wireResultButtons();
 }
 
 function renderNotFound(query) {
+  currentView = 'search';
   resultBox.innerHTML = `
     <div class="not-found">
       「${query}」は現在の対応データベース(5-ASA製剤 4種)には見つかりませんでした。<br>
@@ -639,6 +699,7 @@ function renderNotFound(query) {
 }
 
 function renderEmpty() {
+  currentView = 'search';
   resultBox.innerHTML = `<div class="empty-state">薬名を入力すると、他の選択肢が表示されます</div>`;
 }
 
@@ -666,10 +727,17 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// URLに ?drug=variantId が付いている場合は、検索窓を使わずに
-// いきなりその薬の比較結果を表示する(ホーム画面の「今の薬」経由の遷移用)
+// URLに ?view=favorites が付いていれば、お気に入り一覧を表示。
+// ?drug=variantId が付いていれば、検索窓を使わずにその薬の比較結果を表示する
+// (ホーム画面の各ボタン経由の遷移用)
 function initFromQuery() {
   const params = new URLSearchParams(window.location.search);
+
+  if (params.get('view') === 'favorites') {
+    renderFavoritesList();
+    return true;
+  }
+
   const initialId = params.get('drug');
   if (initialId) {
     const match = ALL_VARIANTS.find(({ variant }) => variant.id === initialId);
@@ -682,10 +750,11 @@ function initFromQuery() {
   return false;
 }
 
-if (!initFromQuery()) {
-  renderEmpty();
-}
-loadFavorites();
+loadFavorites().then(() => {
+  if (!initFromQuery()) {
+    renderEmpty();
+  }
+});
 </script>
 </body>
 </html>
